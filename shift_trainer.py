@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 from pynput import keyboard
 from pynput.keyboard import Key
+
 import random
 import asyncio
 import time
@@ -9,6 +12,15 @@ import functools
 
 SHIFT_KEYS = (Key.shift, Key.shift_r)
 
+colors = {
+    'green': '\033[92m',
+    'red': '\033[91m',
+    'endc': '\033[0m'
+}
+
+def colorize(text, color):
+    """ Colorize console output with terminal escape sequences """
+    return f"{colors[color]}{text}{colors['endc']}"
 
 class ShiftsReader:
     """ Transition class for integrating `pyinput` shift handling in asyncio """
@@ -68,11 +80,13 @@ class ShiftTrainer:
                 print(check_key)
                 pressed_shift = await self.shifts_reader.get_shift()
                 count += 1
+
                 if pressed_shift == check_shift:
-                    print('OK')
+                    print(colorize('OK', 'green'))
                     valid += 1
                 else:
-                    print('False')
+                    print(colorize('False', 'red'))
+
         except asyncio.CancelledError:
             if count != 0:
                 return (time.time() - t) / count, valid / count * 100
@@ -84,6 +98,7 @@ class ShiftTrainer:
         self.shifts_reader.start()
         self.train_task = asyncio.ensure_future(self._train_loop())
         result = await self.train_task
+
         if result is not None:
             print(f'Reaction time: {result[0]}\nValid percentage: {result[1]}')
 
@@ -95,10 +110,12 @@ class ShiftTrainer:
 async def main():
     trainer = ShiftTrainer()
     loop = asyncio.get_event_loop()
+
     for signame in {'SIGINT', 'SIGTERM'}:
         loop.add_signal_handler(
             getattr(signal, signame),
             functools.partial(trainer.stop))
+
     await trainer.train()
 
 
